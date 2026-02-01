@@ -1,0 +1,37 @@
+name: Node.js (with cache)
+
+on:
+  workflow_dispatch:
+  push:
+    # Only trigger the follow if changes are pushed to this file
+    paths: [".github/workflows/build_with_cache.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Set up node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "23.x"
+          # Note: the caching step could be achieved by add the following here:
+          # cache: "npm"
+          # cache-dependency-path: "./app/package-lock.json"
+
+      - name: Cache node modules
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ./app/node_modules
+            ./app/dist
+          key: ${{ runner.os }}-node-${{ hashFiles('./app/package-lock.json') }}
+      
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          npm ci
+          npm run build --if-present
